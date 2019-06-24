@@ -49,7 +49,7 @@ void AGDKPlayerController::BeginPlay()
 	{
 		GameState->OnTimerUpdated().AddUObject(this, &AGDKPlayerController::TimerUpdated);
 	}
-	SetUIMode(true, false);
+	SetUIMode(true);
 }
 
 void AGDKPlayerController::Tick(float DeltaTime)
@@ -114,10 +114,10 @@ void AGDKPlayerController::KillCharacter(const AActor* Killer)
 
 	if (const AHoldable* Holdable = Cast<AHoldable>(Killer))
 	{
-		const AActor* Weilder = Holdable->GetOwner();
+		const AActor* Wielder = Holdable->GetOwner();
 
 
-		if (const ACharacter* KillerCharacter = Cast<ACharacter>(Weilder))
+		if (const ACharacter* KillerCharacter = Cast<ACharacter>(Wielder))
 		{
 			if (AGDKPlayerState* KillerState = Cast<AGDKPlayerState>(KillerCharacter->PlayerState))
 			{
@@ -189,13 +189,13 @@ void AGDKPlayerController::TimerUpdated(EGDKSessionProgress SessionProgress, int
 	}
 }
 
-void AGDKPlayerController::SetUIMode(bool bIsUIMode, bool bAllowMovement)
+void AGDKPlayerController::SetUIMode(bool bIsUIMode)
 {
 	bShowMouseCursor = bIsUIMode;
 	ResetIgnoreLookInput();
 	SetIgnoreLookInput(bIsUIMode);
 	ResetIgnoreMoveInput();
-	SetIgnoreMoveInput(bIsUIMode && !bAllowMovement);
+	SetIgnoreMoveInput(bIsUIMode);
 	SetIgnoreActionInput(bIsUIMode);
 
 	if (bIsUIMode)
@@ -211,7 +211,15 @@ void AGDKPlayerController::SetUIMode(bool bIsUIMode, bool bAllowMovement)
 	{
 		if (UEquippedComponent* EquippedComponent = Cast<UEquippedComponent>(GetPawn()->GetComponentByClass(UEquippedComponent::StaticClass())))
 		{
-			EquippedComponent->BlockUsing(bIsUIMode);
+			if (bIsUIMode && EquipmentBlockingHande == nullptr)
+			{
+				EquipmentBlockingHande = EquippedComponent->BlockUsing();
+			}
+			else if(!bIsUIMode && EquipmentBlockingHande != nullptr)
+			{
+				EquippedComponent->UnblockUsing(EquipmentBlockingHande);
+				EquipmentBlockingHande = nullptr;
+			}
 		}
 	}
 }
@@ -366,7 +374,7 @@ void AGDKPlayerController::RespawnCharacter_Implementation()
 		}
 		else
 		{
-			UE_LOG(LogGDK, Error, TEXT("%d: Created a player without a GDK PlayerState"), *this->GetName());
+			UE_LOG(LogGDK, Error, TEXT("%d: Created a player without a GDK PlayerState"), *GetName());
 		}
 	}
 }
@@ -374,7 +382,7 @@ void AGDKPlayerController::RespawnCharacter_Implementation()
 void AGDKPlayerController::SetUIMode()
 {
 	bool bInMenu = CurrentControllerState != EGDKControllerState::InProgress || CurrentMenu != EGDKMenu::None || CurrentCharacterState != EGDKCharacterState::Alive;
-	SetUIMode(bInMenu, !bInMenu);
+	SetUIMode(bInMenu);
 }
 
 void AGDKPlayerController::SetControllerState(EGDKControllerState NewState)

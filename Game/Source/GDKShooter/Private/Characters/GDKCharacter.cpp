@@ -3,12 +3,12 @@
 #include "GDKCharacter.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Controllers/GDKPlayerController.h"
+#include "Game/GDKPlayerState.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GDKLogging.h"
 #include "SpatialNetDriver.h"
 #include "UnrealNetwork.h"
-#include "GDKLogging.h"
-#include "Game/GDKPlayerState.h"
-#include "Controllers/GDKPlayerController.h"
 #include "Weapons/Holdable.h"
 
 AGDKCharacter::AGDKCharacter(const FObjectInitializer& ObjectInitializer)
@@ -51,6 +51,7 @@ void AGDKCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 	PlayerInputComponent->BindAction<FBoolean>("Sprint", IE_Pressed, GDKMovementComponent, &UGDKMovementComponent::SetWantsToSprint, true);
 	PlayerInputComponent->BindAction<FBoolean>("Sprint", IE_Released, GDKMovementComponent, &UGDKMovementComponent::SetWantsToSprint, false);
+	// true parameter to Crouch and UnCrouch is for parameter bClientSimulation
 	PlayerInputComponent->BindAction<FBoolean>("Crouch", IE_Pressed, this, &AGDKCharacter::Crouch, true);
 	PlayerInputComponent->BindAction<FBoolean>("Crouch", IE_Released, this, &AGDKCharacter::UnCrouch, true);
 
@@ -93,7 +94,7 @@ void AGDKCharacter::MoveRight(float Value)
 
 void AGDKCharacter::OnEquippedUpdated_Implementation(AHoldable* Holdable)
 {
-	if (Holdable)
+	if (Holdable != nullptr)
 	{
 		Holdable->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Holdable->GetActiveSocket());
 	}
@@ -103,14 +104,10 @@ void AGDKCharacter::Die(const AActor* Killer)
 {
 	TearOff();
 
-	AGDKPlayerController* PC = Cast<AGDKPlayerController>(GetController());
-	if (PC)
+	if (AGDKPlayerController* PC = Cast<AGDKPlayerController>(GetController()))
 	{
 		PC->KillCharacter(Killer);
 	}
-
-	DeletionDelegate.BindUFunction(this, FName("DeleteSelf"));
-	GetWorldTimerManager().SetTimer(DeletionTimer, DeletionDelegate, 5.0f, false);
 }
 
 void AGDKCharacter::TornOff()
@@ -124,7 +121,7 @@ void AGDKCharacter::StartRagdoll()
 	UCapsuleComponent* CapsuleComponent = GetCapsuleComponent();
 	if (CapsuleComponent == nullptr)
 	{
-		UE_LOG(LogGDK, Error, TEXT("Invalid capsule component on character %s"), *this->GetName());
+		UE_LOG(LogGDK, Error, TEXT("Invalid capsule component on character %s"), *GetName());
 		return;
 	}
 
@@ -166,9 +163,9 @@ void AGDKCharacter::StartRagdoll()
 
 void AGDKCharacter::DeleteSelf()
 {
-	if (this->IsValidLowLevel())
+	if (IsValidLowLevel())
 	{
-		this->Destroy();
+		Destroy();
 	}
 }
 
