@@ -108,6 +108,8 @@ void AGDKCharacter::Die(const AActor* Killer)
 	{
 		PC->KillCharacter(Killer);
 	}
+
+	StartRagdoll();
 }
 
 void AGDKCharacter::TornOff()
@@ -177,10 +179,6 @@ float AGDKCharacter::TakeDamage(float Damage, const FDamageEvent& DamageEvent, A
 
 void AGDKCharacter::TakeDamageCrossServer_Implementation(float Damage, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (HasAuthority())
-	{
-		float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
-		HealthComponent->TakeDamage(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
-	}
-
+	float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	HealthComponent->TakeDamage(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
 }
