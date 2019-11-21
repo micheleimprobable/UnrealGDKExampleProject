@@ -24,7 +24,8 @@ public class GDKShooter : ModuleRules
 				"SpatialGDK",
                 "Json",
                 "HTTP",
-                "AIModule"
+                "AIModule",
+                "Gauntlet"
 			});
 	}
 }
