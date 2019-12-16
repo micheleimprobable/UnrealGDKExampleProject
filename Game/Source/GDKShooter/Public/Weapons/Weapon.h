@@ -31,6 +31,9 @@ public:
 		float AimingFoV = 55;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	    float ScopeTargetSquaredDistance = 100000.0f * 100000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 		float AimingRotationSpeed = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
