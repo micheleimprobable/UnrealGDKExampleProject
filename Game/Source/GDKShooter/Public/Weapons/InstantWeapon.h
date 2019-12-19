@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Weapons/Weapon.h"
 #include "Runtime/Engine/Public/TimerManager.h"
+#include "SpatialGDK/Public/EngineClasses/Components/ActorInterestComponent.h"
 #include "InstantWeapon.generated.h"
 
 /**
@@ -36,6 +37,12 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void FinishedBurst();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapons")
+	void SetupZoomedQBI (USphereConstraint* target, const FVector& location, AActor* character);
+
+	UFUNCTION(BlueprintCallable, Category = "Weapons")
+	void RemoveZoomedQBI();
 
 	virtual void SetIsActive(bool bNewActive) override;
 

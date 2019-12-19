@@ -243,3 +243,16 @@ void AInstantWeapon::SetIsActive(bool bNewActive)
 
 	ConsumeBufferedShot();
 }
+
+void AInstantWeapon::SetupZoomedQBI (USphereConstraint* target, const FVector& location, AActor* character) {
+    UE_LOG(LogBlueprint, Warning, TEXT("---------------------------------- Setting up zoomed QBI to <%g, %g, %g>"),
+            location.X, location.Y, location.Z
+    );
+    target->Center = location;
+    auto* const zoom_interest = Cast<UActorInterestComponent>(character->GetComponentByClass(UActorInterestComponent::StaticClass()));
+    zoom_interest->refresh();
+}
+
+void AInstantWeapon::RemoveZoomedQBI() {
+    UE_LOG(LogBlueprint, Warning, TEXT("------------------------------------ Would remove zoomed QBI"));
+}
