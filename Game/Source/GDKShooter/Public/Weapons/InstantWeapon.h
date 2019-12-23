@@ -39,7 +39,7 @@ public:
 		void FinishedBurst();
 
 	UFUNCTION(BlueprintCallable, Category = "Weapons")
-	void SetupZoomedQBI (USphereConstraint* target, const FVector& location, AActor* character);
+	void SetupZoomedQBI (UActorInterestComponent* interestet, float distance, AActor* character, float fov);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapons")
 	void RemoveZoomedQBI();

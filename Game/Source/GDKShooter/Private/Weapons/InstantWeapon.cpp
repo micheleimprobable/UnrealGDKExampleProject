@@ -7,6 +7,8 @@
 #include "GameFramework/DamageType.h"
 #include "GDKLogging.h"
 #include "UnrealNetwork.h"
+#include <cmath>
+#include <ciso646>
 
 
 AInstantWeapon::AInstantWeapon()
@@ -244,12 +246,38 @@ void AInstantWeapon::SetIsActive(bool bNewActive)
 	ConsumeBufferedShot();
 }
 
-void AInstantWeapon::SetupZoomedQBI (USphereConstraint* target, const FVector& location, AActor* character) {
-    UE_LOG(LogBlueprint, Warning, TEXT("---------------------------------- Setting up zoomed QBI to <%g, %g, %g>"),
-            location.X, location.Y, location.Z
-    );
-    target->Center = location;
+void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float distance, AActor* character, float fov) {
+    interest->Queries.Empty();
     auto* const zoom_interest = Cast<UActorInterestComponent>(character->GetComponentByClass(UActorInterestComponent::StaticClass()));
+
+    float old_radius = 0.0f;
+    unsigned int circle_count = 0;
+    float max_rad, min_rad;
+    const float tan_half_fov = std::tan(FMath::DegreesToRadians(fov) / 2.0f);
+    float remaining_dist = distance + distance * tan_half_fov;
+    while (remaining_dist > 500.0f) {
+        remaining_dist -= old_radius;
+        const FVector location(character->GetActorForwardVector() * remaining_dist + character->GetActorLocation());
+        FQueryData new_query;
+        USphereConstraint* const new_sphere = NewObject<USphereConstraint>();
+        new_sphere->Center = location;
+        new_sphere->Radius = remaining_dist * tan_half_fov;
+        new_query.Constraint = new_sphere;
+        interest->Queries.Add(new_query);
+
+        UE_LOG(LogBlueprint, Warning, TEXT("Setting up zoomed QBI to <%g, %g, %g>, dist=%g, rad=%g"),
+               location.X, location.Y, location.Z,
+               remaining_dist,
+               new_sphere->Radius
+        );
+        if (0 == circle_count)
+            max_rad = new_sphere->Radius;
+        min_rad = new_sphere->Radius;
+        remaining_dist -= (old_radius = new_sphere->Radius);
+        ++circle_count;
+    }
+
+    UE_LOG(LogBlueprint, Warning, TEXT("Created %d circles, smallest is %g, biggest is %g"), circle_count, min_rad, max_rad);
     zoom_interest->refresh();
 }
 
