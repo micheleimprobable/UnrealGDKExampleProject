@@ -250,18 +250,23 @@ void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float di
     interest->Queries.Empty();
     auto* const zoom_interest = Cast<UActorInterestComponent>(character->GetComponentByClass(UActorInterestComponent::StaticClass()));
 
-    float old_radius = 0.0f;
     unsigned int circle_count = 0;
-    float max_rad, min_rad;
+    float max_rad = 0.0f, min_rad = 0.0f;
     const float tan_half_fov = std::tan(FMath::DegreesToRadians(fov) / 2.0f);
-    float remaining_dist = distance + distance * tan_half_fov;
-    while (remaining_dist > 500.0f) {
-        remaining_dist -= old_radius;
+	float radius = 0.0f;
+	float remaining_dist = distance;
+	while (remaining_dist > 500.0f) {
+		remaining_dist -= radius;
+        {
+            const auto &m = tan_half_fov;
+            const auto &d = remaining_dist;
+            radius = m * d / (m + FMath::Sqrt(1.0f + m * m));
+        }
         const FVector location(character->GetActorForwardVector() * remaining_dist + character->GetActorLocation());
         FQueryData new_query;
         USphereConstraint* const new_sphere = NewObject<USphereConstraint>();
         new_sphere->Center = location;
-        new_sphere->Radius = remaining_dist * tan_half_fov;
+        new_sphere->Radius = radius;
         new_query.Constraint = new_sphere;
         interest->Queries.Add(new_query);
 
@@ -271,13 +276,13 @@ void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float di
                new_sphere->Radius
         );
         if (0 == circle_count)
-            max_rad = new_sphere->Radius;
-        min_rad = new_sphere->Radius;
-        remaining_dist -= (old_radius = new_sphere->Radius);
+            max_rad = radius;
+        min_rad = radius;
+        remaining_dist -= radius;
         ++circle_count;
     }
 
-    UE_LOG(LogBlueprint, Warning, TEXT("Created %d circles, smallest is %g, biggest is %g"), circle_count, min_rad, max_rad);
+    UE_LOG(LogBlueprint, Warning, TEXT("Created %d circles, smallest is %g, biggest is %g at distance %g"), circle_count, min_rad, max_rad, distance);
     zoom_interest->refresh();
 }
 
