@@ -251,17 +251,14 @@ void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float di
     auto* const zoom_interest = Cast<UActorInterestComponent>(character->GetComponentByClass(UActorInterestComponent::StaticClass()));
 
     unsigned int circle_count = 0;
-    float max_rad = 0.0f, min_rad = 0.0f;
+    float max_radius = 0.0f, min_radius = 0.0f;
     const float tan_half_fov = std::tan(FMath::DegreesToRadians(fov) / 2.0f);
-	float radius = 0.0f;
-	float remaining_dist = distance;
+    const auto &m = tan_half_fov;
+    float remaining_dist = distance + (m * distance / FMath::Sqrt(1.0f + m * m));
 	while (remaining_dist > 500.0f) {
-		remaining_dist -= radius;
-        {
-            const auto &m = tan_half_fov;
-            const auto &d = remaining_dist;
-            radius = m * d / (m + FMath::Sqrt(1.0f + m * m));
-        }
+        const auto &d = remaining_dist;
+        const float radius = m * d / (m + FMath::Sqrt(1.0f + m * m));
+        remaining_dist -= radius;
         const FVector location(character->GetActorForwardVector() * remaining_dist + character->GetActorLocation());
         FQueryData new_query;
         USphereConstraint* const new_sphere = NewObject<USphereConstraint>();
@@ -276,13 +273,13 @@ void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float di
                new_sphere->Radius
         );
         if (0 == circle_count)
-            max_rad = radius;
-        min_rad = radius;
+            max_radius = radius;
+        min_radius = radius;
         remaining_dist -= radius;
         ++circle_count;
     }
 
-    UE_LOG(LogBlueprint, Warning, TEXT("Created %d circles, smallest is %g, biggest is %g at distance %g"), circle_count, min_rad, max_rad, distance);
+    UE_LOG(LogBlueprint, Warning, TEXT("Created %d circles, smallest is %g, biggest is %g at distance %g"), circle_count, min_radius, max_radius, distance);
     zoom_interest->refresh();
 }
 
