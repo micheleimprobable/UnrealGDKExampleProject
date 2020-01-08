@@ -7,6 +7,7 @@
 #include "GameFramework/DamageType.h"
 #include "GDKLogging.h"
 #include "UnrealNetwork.h"
+#include "DrawDebugHelpers.h"
 #include <cmath>
 #include <ciso646>
 
@@ -289,4 +290,32 @@ void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float di
 
 void AInstantWeapon::RemoveZoomedQBI() {
     UE_LOG(LogBlueprint, Warning, TEXT("------------------------------------ Would remove zoomed QBI"));
+}
+
+void AInstantWeapon::DrawDebugSpheresOnly (float distance, AActor* character, float fov) {
+    auto* const zoom_interest = Cast<UActorInterestComponent>(character->GetComponentByClass(UActorInterestComponent::StaticClass()));
+
+    UE_LOG(LogBlueprint, Warning, TEXT("Drawing sphere sphere sphere sphere sphere sphere sphere sphere spher spher spher spher spher spher spher spher spher spher spher spher sphereeeeeeeeeeeee"));
+
+    const float tan_half_fov = std::tan(FMath::DegreesToRadians(fov) / 2.0f);
+    float remaining_dist = distance + radius_at_distance(tan_half_fov, distance);
+    while (remaining_dist > 500.0f) {
+        const float radius = radius_at_distance(tan_half_fov, remaining_dist);
+        remaining_dist -= radius;
+        const FVector location(character->GetActorForwardVector() * remaining_dist + character->GetActorLocation());
+
+        DrawDebugSphere(
+                GetWorld(),
+                location,
+                radius,
+                30,
+                FColor(0xb7, 0x10, 0x20, 0x60),
+                false,
+                75.0f,
+                0x0,
+                2.0f
+        );
+
+        remaining_dist -= radius;
+    }
 }

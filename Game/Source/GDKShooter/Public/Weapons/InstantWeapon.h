@@ -38,6 +38,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 		void FinishedBurst();
 
+    UFUNCTION(BlueprintCallable, Category = "Weapons")
+    void DrawDebugSpheresOnly (float distance, AActor* character, float fov);
+
 	UFUNCTION(BlueprintCallable, Category = "Weapons")
 	void SetupZoomedQBI (UActorInterestComponent* interestet, float distance, AActor* character, float fov);
 
