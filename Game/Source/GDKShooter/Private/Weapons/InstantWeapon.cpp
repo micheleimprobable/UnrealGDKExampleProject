@@ -10,8 +10,19 @@
 #include "DrawDebugHelpers.h"
 #include <cmath>
 #include <ciso646>
+#include <tuple>
+#include <algorithm>
 
 namespace {
+    const constexpr float g_pi = 3.1415927f;
+
+    [[gnu::const]]
+    std::tuple<float, float> sin_cos (float a) {
+        float s, c;
+        FMath::SinCos(&s, &c, a);
+        return std::make_tuple(s, c);
+    }
+
     [[gnu::const]]
     float radius_at_distance (float m, float d) {
         return m * d / (m + FMath::Sqrt(1.0f + m * m));
@@ -251,6 +262,61 @@ void AInstantWeapon::SetIsActive(bool bNewActive)
 	Super::SetIsActive(bNewActive);
 
 	ConsumeBufferedShot();
+}
+
+void AInstantWeapon::SetupZoomedQBIBox (UActorInterestComponent* interest, float distance, AActor* character, float fov, int splits) {
+    interest->Queries.Empty();
+    auto* const zoom_interest = Cast<UActorInterestComponent>(character->GetComponentByClass(UActorInterestComponent::StaticClass()));
+    const auto [sin_half_fov, cos_half_fov] = sin_cos(FMath::DegreesToRadians(fov) / 2.0f);
+    const auto facing_proj_2d = FVector(character->GetActorForwardVector().X, character->GetActorForwardVector().Y, 0.0f).GetSafeNormal();
+    const float sin_a = FVector::CrossProduct(FVector(1.0f, 0.0f, 0.0f), facing_proj_2d).Z;
+    const float cos_a = FVector::DotProduct(FVector(1.0f, 0.0f, 0.0f), facing_proj_2d);
+    const float cos_lower_angle = cos_a * cos_half_fov + sin_a * sin_half_fov;
+    const float sin_upper_angle = sin_a * cos_half_fov + cos_a * sin_half_fov;
+    const float i = distance * cos_half_fov;
+    const float fov_base = distance * std::tan(FMath::DegreesToRadians(fov) / 2.0f) * 2.0f;
+    const float bounding_rect_h = std::max(FMath::Abs(i * sin_upper_angle), fov_base);
+    const float bounding_rect_w = std::max(FMath::Abs(i * cos_lower_angle), fov_base);
+
+    const float waste_ratio = (bounding_rect_w * bounding_rect_h - fov_base * distance / 2.0f) / (bounding_rect_w * bounding_rect_h);
+
+    UE_LOG(LogBlueprint, Warning, TEXT("Bounding rect facing <%g, %g, %g> is %fx%f, A=%f,\nfovbase=%f, A=%f, i=%f, waste=%f%%, lowercos=%f, uppersin=%f\ncos_=%f, sin_a=%f"),
+        facing_proj_2d.X, facing_proj_2d.Y, facing_proj_2d.Z,
+        bounding_rect_w, bounding_rect_h,
+        bounding_rect_w * bounding_rect_h,
+        fov_base,
+        distance * fov_base / 2.0f,
+        i,
+        waste_ratio * 100.0f,
+        cos_lower_angle, sin_upper_angle,
+        cos_a, sin_a
+    );
+
+    //const float curr_top
+    if (cos_a < std::cos(g_pi / 4.0f) and cos_a > std::cos(g_pi / 4.0f * 3.0f)) {
+        //character is looking towards y or -y, split vertically
+        UE_LOG(LogBlueprint, Warning, TEXT("Splitting vertically"));
+    }
+    else {
+        //character is looking towards x or -x, split horizontally
+        UE_LOG(LogBlueprint, Warning, TEXT("Splitting horizontally"));
+        const float sin_lower_angle = sin_a * cos_half_fov - cos_a * sin_half_fov;
+        const float cos_upper_angle = cos_a * cos_half_fov - sin_a * sin_half_fov;
+        float prev_bottom = bounding_rect_h;
+        float prev_left = bounding_rect_w;
+        for (int z = splits; z > 0; --z) {
+            const float left = static_cast<float>(z - 1) * (bounding_rect_w / static_cast<float>(splits));
+            const float top = prev_bottom;
+            const float right = prev_left;
+            const float m_lower = sin_lower_angle / cos_lower_angle;
+            const float bottom = m_lower * left;
+            prev_left = left;
+            const float m_upper = sin_upper_angle / cos_upper_angle;
+            prev_bottom = m_upper * left;
+
+            UE_LOG(LogBlueprint, Warning, TEXT("Would add rect [%f, %f, %f, %f]"), left, top, right, bottom);
+        }
+    }
 }
 
 void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float distance, AActor* character, float fov) {

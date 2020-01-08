@@ -44,6 +44,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapons")
 	void SetupZoomedQBI (UActorInterestComponent* interestet, float distance, AActor* character, float fov);
 
+    UFUNCTION(BlueprintCallable, Category = "Weapons")
+    void SetupZoomedQBIBox (UActorInterestComponent* interest, float distance, AActor* character, float fov, int splits);
+
 	UFUNCTION(BlueprintCallable, Category = "Weapons")
 	void RemoveZoomedQBI();
 

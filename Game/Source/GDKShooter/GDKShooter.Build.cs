@@ -6,7 +6,10 @@ public class GDKShooter : ModuleRules
 {
 	public GDKShooter(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		//PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		PCHUsage = PCHUsageMode.NoSharedPCHs;
+		PrivatePCHHeaderFile = "my_pch.h";
+		CppStandard = CppStandardVersion.Cpp17;
 
 		PublicDependencyModuleNames.AddRange(
 			new string[]
