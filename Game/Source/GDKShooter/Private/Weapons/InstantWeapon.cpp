@@ -10,6 +10,12 @@
 #include <cmath>
 #include <ciso646>
 
+namespace {
+    [[gnu::const]]
+    float radius_at_distance (float m, float d) {
+        return m * d / (m + FMath::Sqrt(1.0f + m * m));
+    }
+} //unnamed namespace
 
 AInstantWeapon::AInstantWeapon()
 {
@@ -253,11 +259,9 @@ void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float di
     unsigned int circle_count = 0;
     float max_radius = 0.0f, min_radius = 0.0f;
     const float tan_half_fov = std::tan(FMath::DegreesToRadians(fov) / 2.0f);
-    const auto &m = tan_half_fov;
-    float remaining_dist = distance + (m * distance / FMath::Sqrt(1.0f + m * m));
+    float remaining_dist = distance + radius_at_distance(tan_half_fov, distance);
 	while (remaining_dist > 500.0f) {
-        const auto &d = remaining_dist;
-        const float radius = m * d / (m + FMath::Sqrt(1.0f + m * m));
+        const float radius = radius_at_distance(tan_half_fov, remaining_dist);
         remaining_dist -= radius;
         const FVector location(character->GetActorForwardVector() * remaining_dist + character->GetActorLocation());
         FQueryData new_query;
