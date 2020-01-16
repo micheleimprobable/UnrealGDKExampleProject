@@ -255,10 +255,6 @@ void AInstantWeapon::SetupZoomedQBIBox (UActorInterestComponent* interest, float
     auto boxes = filler.box_filling(FVector(0.0f), character->GetActorForwardVector(), splits);
 }
 
-void AInstantWeapon::SayItsPanning() {
-    UE_LOG(LogBlueprint, Warning, TEXT("Yeah panning allright"));
-}
-
 void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float distance, AActor* character, float fov) {
     interest->Queries.Empty();
     auto *const zoom_interest = Cast<UActorInterestComponent>(
@@ -267,6 +263,7 @@ void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float di
     FrustumConstraintFiller filler(fov, 500.0f, distance);
     auto spheres = filler.sphere_filling(character->GetActorLocation(), character->GetActorForwardVector());
 
+    auto d = character->GetActorForwardVector();
     for (const FrustumConstraintFiller::Sphere& sphere : spheres) {
         FQueryData new_query;
         USphereConstraint *const new_sphere = NewObject<USphereConstraint>();
