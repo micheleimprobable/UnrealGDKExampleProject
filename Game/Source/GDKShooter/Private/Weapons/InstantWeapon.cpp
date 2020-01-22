@@ -9,6 +9,42 @@
 #include "UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
 #include "FrustumConstraintFiller.h"
+#include "Interop/SpatialReceiverEntityQueue.h"
+#include "EngineClasses/SpatialGameInstance.h"
+#include <ciso646>
+#include <algorithm>
+
+class USpatialPackageMapClient;
+
+namespace {
+    class IdToActorIterator {
+    public:
+        typedef SpatialReceiverEntityQueue::ActorQueue::const_iterator wrapped_iterator_type;
+        typedef AActor* value_type;
+        typedef AActor* reference;
+        typedef AActor* pointer;
+        typedef wrapped_iterator_type::iterator_category iterator_category;
+        typedef wrapped_iterator_type::difference_type difference_type;
+
+        IdToActorIterator (USpatialPackageMapClient* map_client, const wrapped_iterator_type& it) :
+            m_wrapped(it),
+            m_map_client(map_client)
+        {
+        }
+
+        reference operator*() { return SpatialReceiverEntityQueue::to_actor(*m_wrapped, m_map_client); }
+        const reference operator*() const { return SpatialReceiverEntityQueue::to_actor(*m_wrapped, m_map_client); }
+        pointer operator->() { return SpatialReceiverEntityQueue::to_actor(*m_wrapped, m_map_client); }
+        IdToActorIterator& operator++() { ++m_wrapped; return *this; }
+        wrapped_iterator_type& wrapped_iterator() { return m_wrapped; }
+        difference_type operator- (const IdToActorIterator& other) const { return m_wrapped - other.m_wrapped; }
+        IdToActorIterator operator+= (difference_type offs) { m_wrapped += offs; return *this; }
+
+    private:
+        wrapped_iterator_type m_wrapped;
+        USpatialPackageMapClient* m_map_client;
+    };
+} //unnamed namespace
 
 AInstantWeapon::AInstantWeapon()
 {
@@ -273,11 +309,42 @@ void AInstantWeapon::SetupZoomedQBI (UActorInterestComponent* interest, float di
         interest->Queries.Add(new_query);
     }
 
+    auto* game_inst = Cast<USpatialGameInstance>(GetWorld()->GetGameInstance());
+    if (game_inst) {
+        USpatialGameInstance::ActorSpawnDelegateChain::delegate_type new_delegate;
+        new_delegate.BindLambda([this](const AActor* actor, const SpatialReceiverEntityQueue* queue, USpatialPackageMapClient* client) {
+            auto lo_queue = queue->low_prio_queue();
+            auto it_before = std::lower_bound(
+                IdToActorIterator(client, lo_queue.begin()),
+                IdToActorIterator(client, lo_queue.end()),
+                actor,
+                [this](const AActor* l, const AActor* r) {
+                    check(l and r);
+                    AActor* const self = this->GetOwner();
+                    return self->GetSquaredDistanceTo(l) < self->GetSquaredDistanceTo(r);
+                }
+            );
+            return USpatialGameInstance::NewActorQueuePriority{
+                USpatialGameInstance::NewActorQueuePriority::Low,
+                it_before.wrapped_iterator()
+            };
+        });
+        if (m_lambda_id)
+            game_inst->ActorSpawning().erase(m_lambda_id);
+        m_lambda_id = game_inst->ActorSpawning().push_front(std::move(new_delegate));
+    }
     zoom_interest->refresh();
 }
 
 void AInstantWeapon::RemoveZoomedQBI() {
     UE_LOG(LogBlueprint, Warning, TEXT("------------------------------------ Would remove zoomed QBI"));
+    if (m_lambda_id) {
+        auto* game_inst = Cast<USpatialGameInstance>(GetWorld()->GetGameInstance());
+        if (game_inst) {
+            game_inst->ActorSpawning().erase(m_lambda_id);
+        }
+        m_lambda_id = 0;
+    }
 }
 
 void AInstantWeapon::DrawDebugSpheresOnly (float distance, AActor* character, float fov) {

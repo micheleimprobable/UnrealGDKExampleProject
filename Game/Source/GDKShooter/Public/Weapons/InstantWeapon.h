@@ -141,4 +141,6 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Weapons")
 		float SpreadCrouchModifier = 0.5f;
+
+	int m_lambda_id;
 };
